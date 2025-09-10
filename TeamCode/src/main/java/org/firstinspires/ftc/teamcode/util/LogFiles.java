@@ -4,9 +4,6 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 
 import com.acmerobotics.roadrunner.geometry.Pose2d;
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.ObjectWriter;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.OpModeManagerImpl;
@@ -21,8 +18,10 @@ import org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive;
 import org.firstinspires.ftc.teamcode.drive.SampleTankDrive;
 import org.firstinspires.ftc.teamcode.drive.StandardTrackingWheelLocalizer;
 
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -42,7 +41,6 @@ public final class LogFiles {
 
     public static class LogFile {
         public String version = "quickstart1 v2";
-
         public String opModeName;
         public long msInit = System.currentTimeMillis();
         public long nsInit = System.nanoTime();
@@ -113,6 +111,28 @@ public final class LogFiles {
         public LogFile(String opModeName) {
             this.opModeName = opModeName;
         }
+
+        // Add a simple method to write log as plain text
+        public void writeToFile(File file) throws IOException {
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
+                writer.write("version: " + version + "\n");
+                writer.write("opModeName: " + opModeName + "\n");
+                writer.write("msInit: " + msInit + "\n");
+                writer.write("nsInit: " + nsInit + "\n");
+                writer.write("nsStart: " + nsStart + "\n");
+                writer.write("nsStop: " + nsStop + "\n");
+                // ...write other fields as needed...
+                writer.write("nsTimes: " + nsTimes.toString() + "\n");
+                writer.write("targetXs: " + targetXs.toString() + "\n");
+                writer.write("targetYs: " + targetYs.toString() + "\n");
+                writer.write("targetHeadings: " + targetHeadings.toString() + "\n");
+                writer.write("xs: " + xs.toString() + "\n");
+                writer.write("ys: " + ys.toString() + "\n");
+                writer.write("headings: " + headings.toString() + "\n");
+                writer.write("voltages: " + voltages.toString() + "\n");
+                // ...add more fields if needed...
+            }
+        }
     }
 
     public static void record(
@@ -167,9 +187,6 @@ public final class LogFiles {
         @SuppressLint("SimpleDateFormat")
         final DateFormat dateFormat = new SimpleDateFormat("yyyy_MM_dd__HH_mm_ss_SSS");
 
-        final ObjectWriter jsonWriter = new ObjectMapper(new JsonFactory())
-                .writerWithDefaultPrettyPrinter();
-
         @Override
         public void onOpModePreInit(OpMode opMode) {
             log = new LogFile(opMode.getClass().getCanonicalName());
@@ -205,10 +222,10 @@ public final class LogFiles {
                 //noinspection ResultOfMethodCallIgnored
                 ROOT.mkdirs();
 
-                String filename = dateFormat.format(new Date(log.msInit)) + "__" + opMode.getClass().getSimpleName() + ".json";
+                String filename = dateFormat.format(new Date(log.msInit)) + "__" + opMode.getClass().getSimpleName() + ".txt";
                 File file = new File(ROOT, filename);
                 try {
-                    jsonWriter.writeValue(file, log);
+                    log.writeToFile(file);
                 } catch (IOException e) {
                     RobotLog.setGlobalErrorMsg(new RuntimeException(e),
                             "Unable to write data to " + file.getAbsolutePath());

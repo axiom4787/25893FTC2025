@@ -25,8 +25,10 @@ android {
 
 dependencies {
     implementation project(':FtcRobotController')
-
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:1.8.22"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.22"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.22"
     implementation 'org.apache.commons:commons-math3:3.6.1'
-    implementation 'com.fasterxml.jackson.core:jackson-databind:2.20.0'
+    //implementation 'com.fasterxml.jackson.core:jackson-databind:2.20.0'
     implementation 'com.acmerobotics.roadrunner:core:0.5.6'
 }
