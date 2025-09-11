@@ -65,7 +65,7 @@ import java.util.concurrent.TimeUnit;
 @TeleOp(name = "Sensor: HuskyLens", group = "Sensor")
 public class SensorHuskyLens extends LinearOpMode {
 
-    private final int READ_PERIOD = 250; // ms
+    private final int READ_PERIOD = 50; // ms
 
     private HuskyLens huskyLens;
 
@@ -74,7 +74,7 @@ public class SensorHuskyLens extends LinearOpMode {
     @Override
     public void runOpMode()
     {
-        PIDController turnController = new PIDController(0.05, 0, 0.1);
+        PIDController turnController = new PIDController(0.55, 0, 0.05, -200, 200);
 
         DcMotor leftFrontDrive = hardwareMap.get(DcMotor.class, "leftFront");
         DcMotor leftBackDrive = hardwareMap.get(DcMotor.class, "leftBack");
@@ -131,6 +131,10 @@ public class SensorHuskyLens extends LinearOpMode {
          */
         huskyLens.selectAlgorithm(HuskyLens.Algorithm.TAG_RECOGNITION);
 
+        // Persistent telemetry fields
+        String lastBlockData = "None";
+        int lastBlockId = -1;
+
         telemetry.update();
         waitForStart();
 
@@ -155,10 +159,14 @@ public class SensorHuskyLens extends LinearOpMode {
              *
              * Returns an empty array if no objects are seen.
              */
+
             HuskyLens.Block[] blocks = huskyLens.blocks();
+            telemetry.addData("Block", lastBlockData);
+            telemetry.addData("Block ID", lastBlockId);
             telemetry.addData("Block count", blocks.length);
             for (int i = 0; i < blocks.length; i++) {
-                telemetry.addData("Block", blocks[i].toString());
+                lastBlockData = blocks[i].toString();
+                lastBlockId = blocks[i].id;
                 /*
                  * Here inside the FOR loop, you could save or evaluate specific info for the currently recognized Bounding Box:
                  * - blocks[i].width and blocks[i].height   (size of box, in pixels)
@@ -170,11 +178,15 @@ public class SensorHuskyLens extends LinearOpMode {
                  */
             }
             if (blocks.length > 0) {
-                double turn = turnController.calculate(160f, blocks[0].x);
-                leftBackDrive.setPower(-TURN_SPEED * turn);
-                rightBackDrive.setPower(TURN_SPEED * turn);
-                leftFrontDrive.setPower(-TURN_SPEED * turn);
-                rightFrontDrive.setPower(TURN_SPEED * turn);
+                HuskyLens.Block lastBlock = blocks[blocks.length - 1];
+                lastBlockData = lastBlock.toString();
+                lastBlockId = lastBlock.id;
+                double turn = turnController.calculate(160f, lastBlock.x);
+                telemetry.addData("Turn PID output", turn);
+                leftBackDrive.setPower(-TURN_SPEED * turn - 0.2);
+                rightBackDrive.setPower(TURN_SPEED * turn - 0.2);
+                leftFrontDrive.setPower(-TURN_SPEED * turn - 0.2);
+                rightFrontDrive.setPower(TURN_SPEED * turn - 0.2);
             }
             else {
                 leftBackDrive.setPower(0);
@@ -182,7 +194,9 @@ public class SensorHuskyLens extends LinearOpMode {
                 leftFrontDrive.setPower(0);
                 rightFrontDrive.setPower(0);
             }
-
+            // Always show last seen block data and ID
+            telemetry.addData("Last Block", lastBlockData);
+            telemetry.addData("Last Block ID", lastBlockId);
             telemetry.update();
         }
     }

@@ -13,7 +13,10 @@ public class PIDController {
 
     private double previousTime;
 
-    public PIDController(double kP, double kI, double kD) {
+    private double minOutput;
+    private double maxOutput;
+
+    public PIDController(double kP, double kI, double kD, double minOutput, double maxOutput) {
         this.kP = kP;
         this.kI = kI;
         this.kD = kD;
@@ -21,6 +24,8 @@ public class PIDController {
         this.previousError = 0;
         this.previousTime = 0;
         this.elapsedTime = new ElapsedTime();
+        this.minOutput = minOutput;
+        this.maxOutput = maxOutput;
     }
 
     public double calculate(double setpoint, double actual) {
@@ -33,7 +38,13 @@ public class PIDController {
         double derivative = (error - previousError) / deltaTime;
         previousError = error;
 
-        return (kP * error) + (kI * integral) + (kD * derivative);
+        double output = (kP * error) + (kI * integral) + (kD * derivative);
+        // Normalize output between -1 and 1
+        double normalized = 2 * (output - minOutput) / (maxOutput - minOutput) - 1;
+        // Clamp between -1 and 1
+        if (normalized > 1) normalized = 1;
+        if (normalized < -1) normalized = -1;
+        return normalized;
     }
 
     public void reset() {
