@@ -182,10 +182,10 @@ public class SensorHuskyLens extends LinearOpMode {
                 lastBlockId = lastBlock.id;
                 double turn = turnController.calculate(160f, lastBlock.x);
                 telemetry.addData("Turn PID output", turn);
-                leftBackDrive.setPower(-TURN_SPEED * turn - 0.2);
-                rightBackDrive.setPower(TURN_SPEED * turn - 0.2);
-                leftFrontDrive.setPower(-TURN_SPEED * turn - 0.2);
-                rightFrontDrive.setPower(TURN_SPEED * turn - 0.2);
+                leftBackDrive.setPower(-TURN_SPEED * turn - (0.2 * (blocks[0].id * 2 - 3)));
+                rightBackDrive.setPower(TURN_SPEED * turn - (0.2 * (blocks[0].id * 2 - 3)));
+                leftFrontDrive.setPower(-TURN_SPEED * turn - (0.2 * (blocks[0].id * 2 - 3)));
+                rightFrontDrive.setPower(TURN_SPEED * turn - (0.2 * (blocks[0].id * 2 - 3)));
             }
             else {
                 leftBackDrive.setPower(0);
