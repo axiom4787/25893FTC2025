@@ -173,7 +173,6 @@ public class SensorHuskyLens extends LinearOpMode {
                  * - blocks[i].left and blocks[i].top       (edges of box)
                  * - blocks[i].x and blocks[i].y            (center location)
                  * - blocks[i].id                           (Color ID)
-                 *
                  * These values have Java type int (integer).
                  */
             }
