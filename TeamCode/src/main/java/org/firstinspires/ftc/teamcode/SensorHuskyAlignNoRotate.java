@@ -194,7 +194,7 @@ public class SensorHuskyAlignNoRotate extends LinearOpMode {
                 leftFrontDrive.setPower(0);
                 rightFrontDrive.setPower(0);
             }
-            // Always show last seen block data and ID
+            // Always show last seen block data n' ID
             telemetry.addData("Last Block", lastBlockData);
             telemetry.addData("Last Block ID", lastBlockId);
             telemetry.update();
