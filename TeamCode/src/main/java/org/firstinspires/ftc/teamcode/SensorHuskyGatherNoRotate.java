@@ -36,11 +36,16 @@ import com.qualcomm.hardware.dfrobot.HuskyLens;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 
 import org.firstinspires.ftc.robotcore.internal.system.Deadline;
 import org.firstinspires.ftc.teamcode.util.PIDController;
 
+import java.util.Comparator;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /*
  * This OpMode illustrates how to use the DFRobot HuskyLens.
@@ -60,18 +65,17 @@ import java.util.concurrent.TimeUnit;
  * Use Android Studio to Copy this Class, and Paste it into your team's code folder with a new name.
  * Remove or comment out the @Disabled line to add this OpMode to the Driver Station OpMode list
  */
-@TeleOp(name = "HL Align-me Without Rotate", group = "Auto")
-public class SensorHuskyAlignNoRotate extends LinearOpMode {
+@TeleOp(name = "HL Gather Without Rotating", group = "Auto")
+public class SensorHuskyGatherNoRotate extends LinearOpMode {
 
     private final int READ_PERIOD = 50; // ms
 
     private HuskyLens huskyLens;
 
-    private final float TURN_SPEED = 1f;
+    private final float SPEED = 1f;
 
     @Override
-    public void runOpMode()
-    {
+    public void runOpMode() {
         PIDController turnController = new PIDController(0.55, 0, 0.05, -200, 200);
 
         DcMotor leftFrontDrive = hardwareMap.get(DcMotor.class, "leftFront");
@@ -85,6 +89,10 @@ public class SensorHuskyAlignNoRotate extends LinearOpMode {
         rightBackDrive.setDirection(DcMotor.Direction.REVERSE);
 
         huskyLens = hardwareMap.get(HuskyLens.class, "eyeball");
+
+        int[][] motifs = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}};
+        int current_motif = 0;
+        int motif_index = 0;
 
         /*
          * This sample rate limits the reads solely to allow a user time to observe
@@ -142,11 +150,14 @@ public class SensorHuskyAlignNoRotate extends LinearOpMode {
          *
          * Note again that the device only recognizes the 36h11 family of tags out of the box.
          */
-        while(opModeIsActive()) {
+        while (opModeIsActive()) {
             if (!rateLimit.hasExpired()) {
                 continue;
             }
             rateLimit.reset();
+
+            int[] motif = motifs[current_motif];
+            int target_id = motif[motif_index];
 
             /*
              * All algorithms, except for LINE_TRACKING, return a list of Blocks where a
@@ -159,13 +170,18 @@ public class SensorHuskyAlignNoRotate extends LinearOpMode {
              */
 
             HuskyLens.Block[] blocks = huskyLens.blocks();
-            HuskyLens.Block target_block;
+
+            HuskyLens.Block target_block = Stream.of(blocks)
+                    .filter(b -> b.id == target_id)
+                    .max(Comparator.comparingInt(b -> b.width * b.height))
+                    .orElse(null);
+
             telemetry.addData("Block", lastBlockData);
             telemetry.addData("Block ID", lastBlockId);
             telemetry.addData("Block count", blocks.length);
-            for (int i = 0; i < blocks.length; i++) {
-                lastBlockData = blocks[i].toString();
-                lastBlockId = blocks[i].id;
+            for (HuskyLens.Block block : blocks) {
+                lastBlockData = block.toString();
+                lastBlockId = block.id;
                 /*
                  * Here inside the FOR loop, you could save or evaluate specific info for the currently recognized Bounding Box:
                  * - blocks[i].width and blocks[i].height   (size of box, in pixels)
@@ -175,20 +191,20 @@ public class SensorHuskyAlignNoRotate extends LinearOpMode {
                  * These values have Java type int (integer).
                  */
             }
-            if (blocks.length > 0) {
-                target_block = blocks[0]; // TODO: make sorting and stuff using this later
 
-                float direction = (target_block.x - 160)/160f;
-                float forward_dir = TURN_SPEED * (1-direction);
+            if (blocks.length > 0) {
+
+                assert target_block != null;
+                float direction = (target_block.x - 160) / 160f;
+                float forward_dir = SPEED * (1 - direction);
                 HuskyLens.Block lastBlock = blocks[blocks.length - 1];
                 lastBlockData = lastBlock.toString();
                 lastBlockId = lastBlock.id;
-                leftBackDrive.setPower(TURN_SPEED * direction + forward_dir);
-                rightBackDrive.setPower(TURN_SPEED * direction + forward_dir);
-                leftFrontDrive.setPower(-TURN_SPEED * direction + forward_dir);
-                rightFrontDrive.setPower(-TURN_SPEED * direction + forward_dir);
-            }
-            else {
+                leftBackDrive.setPower(SPEED * direction + forward_dir);
+                rightBackDrive.setPower(SPEED * direction + forward_dir);
+                leftFrontDrive.setPower(-SPEED * direction + forward_dir);
+                rightFrontDrive.setPower(-SPEED * direction + forward_dir);
+            } else {
                 leftBackDrive.setPower(0);
                 rightBackDrive.setPower(0);
                 leftFrontDrive.setPower(0);
