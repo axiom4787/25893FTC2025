@@ -68,7 +68,7 @@ import java.util.stream.Stream;
 @TeleOp(name = "HL Gather Without Rotating", group = "Auto")
 public class SensorHuskyGatherNoRotate extends LinearOpMode {
 
-    private final int READ_PERIOD = 50; // ms
+    private final int READ_PERIOD = 15; // ms
 
     private HuskyLens huskyLens;
 
@@ -196,7 +196,7 @@ public class SensorHuskyGatherNoRotate extends LinearOpMode {
 
                 assert target_block != null;
                 float direction = (target_block.x - 160) / 160f;
-                float forward_dir = SPEED * (1 - direction);
+                float forward_dir = SPEED * (0.6f - Math.abs(direction));
                 HuskyLens.Block lastBlock = blocks[blocks.length - 1];
                 lastBlockData = lastBlock.toString();
                 lastBlockId = lastBlock.id;
@@ -214,6 +214,10 @@ public class SensorHuskyGatherNoRotate extends LinearOpMode {
             telemetry.addData("Last Block", lastBlockData);
             telemetry.addData("Last Block ID", lastBlockId);
             telemetry.update();
+
+            if (gamepad1.a) {
+                motif_index = (motif_index + 1) % 3;
+            }
         }
     }
 }
