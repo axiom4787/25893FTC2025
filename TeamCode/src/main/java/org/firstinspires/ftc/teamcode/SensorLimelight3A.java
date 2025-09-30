@@ -39,8 +39,10 @@ import com.qualcomm.hardware.limelightvision.Limelight3A;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.DcMotor;
 
 import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
+import org.firstinspires.ftc.teamcode.util.PIDController;
 
 import java.util.List;
 
@@ -71,9 +73,23 @@ public class SensorLimelight3A extends LinearOpMode {
 
     private Limelight3A limelight;
 
+    private final float TURN_SPEED = 0.25f;
+
+    PIDController turnController = new PIDController(0.075, 0, 0.025, -15, 15);
+
     @Override
     public void runOpMode() throws InterruptedException
     {
+        DcMotor leftFrontDrive = hardwareMap.get(DcMotor.class, "leftFront");
+        DcMotor leftBackDrive = hardwareMap.get(DcMotor.class, "leftBack");
+        DcMotor rightFrontDrive = hardwareMap.get(DcMotor.class, "rightFront");
+        DcMotor rightBackDrive = hardwareMap.get(DcMotor.class, "rightBack");
+
+        leftFrontDrive.setDirection(DcMotor.Direction.REVERSE);
+        leftBackDrive.setDirection(DcMotor.Direction.FORWARD);
+        rightFrontDrive.setDirection(DcMotor.Direction.FORWARD);
+        rightBackDrive.setDirection(DcMotor.Direction.REVERSE);
+
         limelight = hardwareMap.get(Limelight3A.class, "limelight");
 
         telemetry.setMsTransmissionInterval(11);
@@ -100,6 +116,9 @@ public class SensorLimelight3A extends LinearOpMode {
 
             LLResult result = limelight.getLatestResult();
             if (result.isValid()) {
+
+                double tx = result.getTx();
+
                 // Access general information
                 Pose3D botpose = result.getBotpose();
                 double captureLatency = result.getCaptureLatency();
@@ -145,8 +164,22 @@ public class SensorLimelight3A extends LinearOpMode {
                 for (LLResultTypes.ColorResult cr : colorResults) {
                     telemetry.addData("Color", "X: %.2f, Y: %.2f", cr.getTargetXDegrees(), cr.getTargetYDegrees());
                 }
+
+                double turn = turnController.calculate(0f, tx);
+
+                leftBackDrive.setPower(-TURN_SPEED * turn);
+                rightBackDrive.setPower(TURN_SPEED * turn);
+                leftFrontDrive.setPower(-TURN_SPEED * turn);
+                rightFrontDrive.setPower(TURN_SPEED * turn);
+
+
             } else {
                 telemetry.addData("Limelight", "No data available");
+
+                leftBackDrive.setPower(0);
+                rightBackDrive.setPower(0);
+                leftFrontDrive.setPower(0);
+                rightFrontDrive.setPower(0);
             }
 
             telemetry.update();

@@ -33,18 +33,21 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.hardware.dfrobot.HuskyLens;
+import com.qualcomm.hardware.limelightvision.LLResult;
+import com.qualcomm.hardware.limelightvision.LLResultTypes;
+import com.qualcomm.hardware.limelightvision.LLStatus;
+import com.qualcomm.hardware.limelightvision.Limelight3A;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.DcMotorSimple;
 
+import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
 import org.firstinspires.ftc.robotcore.internal.system.Deadline;
 import org.firstinspires.ftc.teamcode.util.PIDController;
 
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /*
@@ -65,8 +68,15 @@ import java.util.stream.Stream;
  * Use Android Studio to Copy this Class, and Paste it into your team's code folder with a new name.
  * Remove or comment out the @Disabled line to add this OpMode to the Driver Station OpMode list
  */
-@TeleOp(name = "HL Gather Without Rotating", group = "Auto")
-public class SensorHuskyGatherNoRotate extends LinearOpMode {
+@TeleOp(name = "Aristocratic Ball Knowledge", group = "Auto")
+public class AristocraticBallKnowledge extends LinearOpMode {
+
+    private Limelight3A limelight;
+
+    private final float TURN_SPEED = 0.25f;
+
+    double LimeLightFrontPower;
+    double LimeLightBackPower;
 
     final int READ_PERIOD = 10; // ms
 
@@ -74,10 +84,15 @@ public class SensorHuskyGatherNoRotate extends LinearOpMode {
 
     HuskyLens huskyLens;
 
-    @Override
-    public void runOpMode() {
-        PIDController strafePID = new PIDController(1.35, 0, 0.12, -1, 1);
+    PIDController turnController = new PIDController(0.075, 0, 0.025, -15, 15);
+    PIDController strafePID = new PIDController(1.35, 0, 0.12, -1, 1);
 
+    double SPEED = 1f;
+    double forward_dir;
+
+    @Override
+    public void runOpMode() throws InterruptedException
+    {
         DcMotor leftFrontDrive = hardwareMap.get(DcMotor.class, "leftFront");
         DcMotor leftBackDrive = hardwareMap.get(DcMotor.class, "leftBack");
         DcMotor rightFrontDrive = hardwareMap.get(DcMotor.class, "rightFront");
@@ -87,6 +102,17 @@ public class SensorHuskyGatherNoRotate extends LinearOpMode {
         leftBackDrive.setDirection(DcMotor.Direction.FORWARD);
         rightFrontDrive.setDirection(DcMotor.Direction.FORWARD);
         rightBackDrive.setDirection(DcMotor.Direction.REVERSE);
+
+        limelight = hardwareMap.get(Limelight3A.class, "limelight");
+
+        telemetry.setMsTransmissionInterval(11);
+
+        limelight.pipelineSwitch(0);
+
+        /*
+         * Starts polling for data.  If you neglect to call start(), getLatestResult() will return null.
+         */
+        limelight.start();
 
         huskyLens = hardwareMap.get(HuskyLens.class, "eyeball");
 
@@ -140,28 +166,26 @@ public class SensorHuskyGatherNoRotate extends LinearOpMode {
         telemetry.update();
         waitForStart();
 
-        /*
-         * Looking for AprilTags per the call to selectAlgorithm() above.  A handy grid
-         * for testing may be found at https://wiki.dfrobot.com/HUSKYLENS_V1.0_SKU_SEN0305_SEN0336#target_20.
-         *
-         * Note again that the device only recognizes the 36h11 family of tags out of the box.
-         */
+        telemetry.addData(">", "Robot Ready.  Press Play.");
+        telemetry.update();
+        waitForStart();
+
         while (opModeIsActive()) {
+            LLStatus status = limelight.getStatus();
+            telemetry.addData("Name", "%s",
+                    status.getName());
+            telemetry.addData("LL", "Temp: %.1fC, CPU: %.1f%%, FPS: %d",
+                    status.getTemp(), status.getCpu(),(int)status.getFps());
+            telemetry.addData("Pipeline", "Index: %d, Type: %s",
+                    status.getPipelineIndex(), status.getPipelineType());
+
+            /*/ Huskeylens /*/
             if (!rateLimit.hasExpired()) {
                 continue;
             }
             rateLimit.reset();
 
             int target_id = 1;
-            /*
-             * All algorithms, except for LINE_TRACKING, return a list of Blocks where a
-             * Block represents the outline of a recognized object along with its ID number.
-             * ID numbers allow you to identify what the device saw.  See the HuskyLens documentation
-             * referenced in the header comment above for more information on IDs and how to
-             * assign them to objects.
-             *
-             * Returns an empty array if no objects are seen.
-             */
 
             HuskyLens.Block[] blocks = huskyLens.blocks();
 
@@ -186,44 +210,57 @@ public class SensorHuskyGatherNoRotate extends LinearOpMode {
                  */
             }
 
-            if (blocks.length > 0 && target_block != null) {
-                direction = strafePID.calculate(0f, ((target_block.x - 160f) / 160f));
-                double SPEED = 1f;
-                double forward_dir = SPEED * (1f - (target_block.width / 170f));
-                HuskyLens.Block lastBlock = blocks[blocks.length - 1];
-                lastBlockData = lastBlock.toString();
-                lastBlockId = lastBlock.id;
-
-                // ir)};
-
-                double[] powers = {((-SPEED * direction) - forward_dir),((SPEED * direction) - forward_dir)};
-                // Divide each part of powers based off of the max value in powers if one of the powers is greater than 1
-                double max = Math.max(Math.abs(powers[0]), Math.abs(powers[1]));
-                if (max > 1) {
-                    powers[0] /= max;
-                    powers[1] /= max;
-                }
-
-                if (target_block.width > 160f) {
-                    powers[0] = 0;
-                    powers[1] = 0;
-                }
-
-                leftBackDrive.setPower(powers[0]); // + forward_dir);
-                rightBackDrive.setPower(powers[0]); // - forward_dir);
-                leftFrontDrive.setPower(powers[1]); // + forward_dir);
-                rightFrontDrive.setPower(powers[1]); // - forward_dir);
-            } else {
-                leftBackDrive.setPower(0);
-                rightBackDrive.setPower(0);
-                leftFrontDrive.setPower(0);
-                rightFrontDrive.setPower(0);
-            }
             // Always show last seen block data n' ID
             telemetry.addData("Last Block", lastBlockData);
             telemetry.addData("Last Block ID", lastBlockId);
             telemetry.update();
 
+            LimeLightBackPower = 0.0;
+            LimeLightFrontPower = 0.0;
+            direction = 0.0;
+            forward_dir = 0.0;
+
+            LLResult result = limelight.getLatestResult();
+            if (result.isValid()) {
+
+                double tx = result.getTx();
+
+                double turn = turnController.calculate(0f, tx);
+
+                LimeLightBackPower = -TURN_SPEED * turn;
+                LimeLightFrontPower = TURN_SPEED * turn;
+            }
+
+            if (blocks.length > 0 && target_block != null) {
+                direction = strafePID.calculate(0f, ((target_block.x - 160f) / 160f));
+                forward_dir = SPEED * (1f - (target_block.width / 170f));
+                HuskyLens.Block lastBlock = blocks[blocks.length - 1];
+                lastBlockData = lastBlock.toString();
+                lastBlockId = lastBlock.id;
+            }
+
+            double[] powers = {((-SPEED * direction) - forward_dir),((SPEED * direction) - forward_dir)};
+            // Divide each part of powers based off of the max value in powers if one of the powers is greater than 1
+            double max = Math.max(Math.abs(powers[0]), Math.abs(powers[1]));
+            if (max > 1) {
+                powers[0] /= max;
+                powers[1] /= max;
+            }
+
+            if (target_block != null) {
+                if (target_block.width > 160f) {
+                    powers[0] = 0;
+                    powers[1] = 0;
+                }
+            }
+
+            leftBackDrive.setPower(powers[0] + LimeLightBackPower); // + forward_dir);
+            rightBackDrive.setPower(powers[0] + LimeLightFrontPower); // - forward_dir);
+            leftFrontDrive.setPower(powers[1] + LimeLightBackPower); // + forward_dir);
+            rightFrontDrive.setPower(powers[1] + LimeLightFrontPower); // - forward_dir);
+
+            telemetry.update();
         }
+        limelight.stop();
     }
 }

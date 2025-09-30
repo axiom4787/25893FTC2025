@@ -93,15 +93,15 @@ public final class LogFiles {
 
         public List<Long> nsTimes = new ArrayList<>();
 
-        public List<Double> targetXs = new ArrayList<>();
-        public List<Double> targetYs = new ArrayList<>();
-        public List<Double> targetHeadings = new ArrayList<>();
+        public List<Float> targetXs = new ArrayList<>();
+        public List<Float> targetYs = new ArrayList<>();
+        public List<Float> targetHeadings = new ArrayList<>();
 
-        public List<Double> xs = new ArrayList<>();
-        public List<Double> ys = new ArrayList<>();
-        public List<Double> headings = new ArrayList<>();
+        public List<Float> xs = new ArrayList<>();
+        public List<Float> ys = new ArrayList<>();
+        public List<Float> headings = new ArrayList<>();
 
-        public List<Double> voltages = new ArrayList<>();
+        public List<Float> voltages = new ArrayList<>();
 
         public List<List<Integer>> driveEncPositions = new ArrayList<>();
         public List<List<Integer>> driveEncVels = new ArrayList<>();
@@ -146,15 +146,15 @@ public final class LogFiles {
 
         log.nsTimes.add(nsTime);
 
-        log.targetXs.add(targetPose.getX());
-        log.targetYs.add(targetPose.getY());
-        log.targetHeadings.add(targetPose.getHeading());
+        log.targetXs.add((float) targetPose.getX());
+        log.targetYs.add((float) targetPose.getY());
+        log.targetHeadings.add((float) targetPose.getHeading());
 
-        log.xs.add(pose.getX());
-        log.ys.add(pose.getY());
-        log.headings.add(pose.getHeading());
+        log.xs.add((float) pose.getX());
+        log.ys.add((float) pose.getY());
+        log.headings.add((float) pose.getHeading());
 
-        log.voltages.add(voltage);
+        log.voltages.add((float) voltage);
 
         while (log.driveEncPositions.size() < lastDriveEncPositions.size()) {
             log.driveEncPositions.add(new ArrayList<>());

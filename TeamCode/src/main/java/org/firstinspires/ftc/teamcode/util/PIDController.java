@@ -35,16 +35,15 @@ public class PIDController {
 
         double error = setpoint - actual;
         integral += error * deltaTime;
-        double derivative = (error - previousError) / deltaTime;
+        double derivative = deltaTime > 0 ? (error - previousError) / deltaTime : 0;
         previousError = error;
 
         double output = (kP * error) + (kI * integral) + (kD * derivative);
-        // Normalize output between -1 and 1
-        double normalized = 2 * (output - minOutput) / (maxOutput - minOutput) - 1;
-        // Clamp between -1 and 1
-        if (normalized > 1) normalized = 1;
-        if (normalized < -1) normalized = -1;
-        return normalized;
+        output /= 2.0; // divide by 2 as requested
+        // Clamp output between minOutput and maxOutput
+        if (output > maxOutput) output = maxOutput;
+        if (output < minOutput) output = minOutput;
+        return output;
     }
 
     public void reset() {

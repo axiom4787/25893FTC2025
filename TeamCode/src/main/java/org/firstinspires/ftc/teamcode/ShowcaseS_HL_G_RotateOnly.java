@@ -36,16 +36,11 @@ import com.qualcomm.hardware.dfrobot.HuskyLens;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.DcMotorSimple;
 
 import org.firstinspires.ftc.robotcore.internal.system.Deadline;
 import org.firstinspires.ftc.teamcode.util.PIDController;
 
-import java.util.Comparator;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /*
  * This OpMode illustrates how to use the DFRobot HuskyLens.
@@ -65,18 +60,19 @@ import java.util.stream.Stream;
  * Use Android Studio to Copy this Class, and Paste it into your team's code folder with a new name.
  * Remove or comment out the @Disabled line to add this OpMode to the Driver Station OpMode list
  */
-@TeleOp(name = "HL Gather Without Rotating", group = "Auto")
-public class SensorHuskyGatherNoRotate extends LinearOpMode {
+@TeleOp(name = "[Rotate Only] Sensor: HuskyLens Gather", group = "Sensor")
+public class ShowcaseS_HL_G_RotateOnly extends LinearOpMode {
 
-    final int READ_PERIOD = 10; // ms
-
-    private double direction;
+    final int READ_PERIOD = 50; // ms
 
     HuskyLens huskyLens;
 
+    final float TURN_SPEED = 0.5f;
+
     @Override
-    public void runOpMode() {
-        PIDController strafePID = new PIDController(1.35, 0, 0.12, -1, 1);
+    public void runOpMode()
+    {
+        PIDController turnController = new PIDController(0.075, 0, 0.0075, -360, 360);
 
         DcMotor leftFrontDrive = hardwareMap.get(DcMotor.class, "leftFront");
         DcMotor leftBackDrive = hardwareMap.get(DcMotor.class, "leftBack");
@@ -146,13 +142,13 @@ public class SensorHuskyGatherNoRotate extends LinearOpMode {
          *
          * Note again that the device only recognizes the 36h11 family of tags out of the box.
          */
-        while (opModeIsActive()) {
+
+        while(opModeIsActive()) {
             if (!rateLimit.hasExpired()) {
                 continue;
             }
             rateLimit.reset();
 
-            int target_id = 1;
             /*
              * All algorithms, except for LINE_TRACKING, return a list of Blocks where a
              * Block represents the outline of a recognized object along with its ID number.
@@ -164,15 +160,10 @@ public class SensorHuskyGatherNoRotate extends LinearOpMode {
              */
 
             HuskyLens.Block[] blocks = huskyLens.blocks();
-
-            HuskyLens.Block target_block = Stream.of(blocks)
-                    .filter(b -> b.id == target_id)
-                    .max(Comparator.comparingInt(b -> b.width * b.height))
-                    .orElse(null);
             telemetry.addData("Block", lastBlockData);
             telemetry.addData("Block ID", lastBlockId);
             telemetry.addData("Block count", blocks.length);
-            telemetry.addData("Direction", direction);
+
             for (HuskyLens.Block block : blocks) {
                 lastBlockData = block.toString();
                 lastBlockId = block.id;
@@ -185,45 +176,28 @@ public class SensorHuskyGatherNoRotate extends LinearOpMode {
                  * These values have Java type int (integer).
                  */
             }
-
-            if (blocks.length > 0 && target_block != null) {
-                direction = strafePID.calculate(0f, ((target_block.x - 160f) / 160f));
-                double SPEED = 1f;
-                double forward_dir = SPEED * (1f - (target_block.width / 170f));
+            if (blocks.length > 0) {
                 HuskyLens.Block lastBlock = blocks[blocks.length - 1];
                 lastBlockData = lastBlock.toString();
                 lastBlockId = lastBlock.id;
-
-                // ir)};
-
-                double[] powers = {((-SPEED * direction) - forward_dir),((SPEED * direction) - forward_dir)};
-                // Divide each part of powers based off of the max value in powers if one of the powers is greater than 1
-                double max = Math.max(Math.abs(powers[0]), Math.abs(powers[1]));
-                if (max > 1) {
-                    powers[0] /= max;
-                    powers[1] /= max;
-                }
-
-                if (target_block.width > 160f) {
-                    powers[0] = 0;
-                    powers[1] = 0;
-                }
-
-                leftBackDrive.setPower(powers[0]); // + forward_dir);
-                rightBackDrive.setPower(powers[0]); // - forward_dir);
-                leftFrontDrive.setPower(powers[1]); // + forward_dir);
-                rightFrontDrive.setPower(powers[1]); // - forward_dir);
-            } else {
-                leftBackDrive.setPower(0);
-                rightBackDrive.setPower(0);
-                leftFrontDrive.setPower(0);
-                rightFrontDrive.setPower(0);
+                double turn = turnController.calculate(160f, lastBlock.x) / 10;
+                telemetry.addData("Turn PID output", turn);
+                leftBackDrive.setPower(-TURN_SPEED * turn);
+                rightBackDrive.setPower(TURN_SPEED * turn);
+                leftFrontDrive.setPower(-TURN_SPEED * turn);
+                rightFrontDrive.setPower(TURN_SPEED * turn);
             }
-            // Always show last seen block data n' ID
+            else {
+                // spin and search for the objects in the direction of the last one we saw
+                leftBackDrive.setPower(0.0f);
+                rightBackDrive.setPower(0.0f);
+                leftFrontDrive.setPower(0.0f);
+                rightFrontDrive.setPower(0.0f);
+            }
+            // Always show last seen block data and ID
             telemetry.addData("Last Block", lastBlockData);
             telemetry.addData("Last Block ID", lastBlockId);
             telemetry.update();
-
         }
     }
 }

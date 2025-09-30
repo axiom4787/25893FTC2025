@@ -36,15 +36,12 @@ import com.qualcomm.hardware.dfrobot.HuskyLens;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.DcMotorSimple;
 
 import org.firstinspires.ftc.robotcore.internal.system.Deadline;
 import org.firstinspires.ftc.teamcode.util.PIDController;
 
 import java.util.Comparator;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /*
@@ -65,8 +62,8 @@ import java.util.stream.Stream;
  * Use Android Studio to Copy this Class, and Paste it into your team's code folder with a new name.
  * Remove or comment out the @Disabled line to add this OpMode to the Driver Station OpMode list
  */
-@TeleOp(name = "HL Gather Without Rotating", group = "Auto")
-public class SensorHuskyGatherNoRotate extends LinearOpMode {
+@TeleOp(name = "[Strafe Only] HL G W/O Rotating", group = "Auto")
+public class ShowcaseS_HL_NR_Strafe extends LinearOpMode {
 
     final int READ_PERIOD = 10; // ms
 
@@ -189,14 +186,13 @@ public class SensorHuskyGatherNoRotate extends LinearOpMode {
             if (blocks.length > 0 && target_block != null) {
                 direction = strafePID.calculate(0f, ((target_block.x - 160f) / 160f));
                 double SPEED = 1f;
-                double forward_dir = SPEED * (1f - (target_block.width / 170f));
                 HuskyLens.Block lastBlock = blocks[blocks.length - 1];
                 lastBlockData = lastBlock.toString();
                 lastBlockId = lastBlock.id;
 
                 // ir)};
 
-                double[] powers = {((-SPEED * direction) - forward_dir),((SPEED * direction) - forward_dir)};
+                double[] powers = {(-SPEED * direction),(SPEED * direction)};
                 // Divide each part of powers based off of the max value in powers if one of the powers is greater than 1
                 double max = Math.max(Math.abs(powers[0]), Math.abs(powers[1]));
                 if (max > 1) {
